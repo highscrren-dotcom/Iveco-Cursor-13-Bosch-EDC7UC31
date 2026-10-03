@@ -1,1 +1,4 @@
 tools/hostsim/build/
+build/
+__pycache__/
+*.pyc
