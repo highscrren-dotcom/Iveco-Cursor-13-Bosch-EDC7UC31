@@ -113,7 +113,8 @@ void ignitionOff() { ecu.ignition = false; ecu.running = false; run(900); }
 void ignitionOn()  { ecu.ignition = true; }
 int  eeFpCount(uint16_t fp) { int n = 0; for (uint8_t p = 0; p < PRESET_COUNT; p++) for (uint8_t k = 0; k < FP_PER_PRESET; k++) if (eeFpGet(p, k) == fp) n++; return n; }
 
-int main() {
+int main(int argc, char** argv) {
+  if (argc > 1) Serial.tee = fopen(argv[1], "w");          // full device log, e.g. for recon/tools/recon_capture.py --summarize
   // ---------------------------------------------------------- S1 boot with blank EEPROM
   printf("S1 boot, blank EEPROM\n");
   setup();
@@ -400,5 +401,6 @@ int main() {
   CHECK(lcd.hiddenCellsClean(), "LCD: nothing ever written outside the visible 16x2");
   CHECK(pumpDesyncs == 0, "LCD always mirrors the frame buffer once the pump is idle");
   printf("\n%d checks, %d failures\n", checks, failures);
+  if (Serial.tee) fclose(Serial.tee);
   return failures ? 1 : 0;
 }

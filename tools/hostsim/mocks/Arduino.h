@@ -40,30 +40,32 @@ class SerialMock {
 public:
   std::string out;
   std::deque<char> in;
+  FILE* tee = nullptr;                      // optional copy of everything printed (e.g. for the recon summarizer)
   void begin(unsigned long) {}
   int  available() { return (int)in.size(); }
   int  read() { if (in.empty()) return -1; char c = in.front(); in.pop_front(); return c; }
   size_t print(const __FlashStringHelper* s) { return print((const char*)s); }
-  size_t print(const char* s) { out += s; return strlen(s); }
-  size_t print(char c) { out += c; return 1; }
+  size_t print(const char* s) { emit(s); return strlen(s); }
+  size_t print(char c) { char b[2] = {c, 0}; emit(b); return 1; }
   size_t print(unsigned char v, int base = DEC) { return num((unsigned long)v, base); }
   size_t print(int v, int base = DEC) { return snum((long)v, base); }
   size_t print(unsigned int v, int base = DEC) { return num((unsigned long)v, base); }
   size_t print(long v, int base = DEC) { return snum(v, base); }
   size_t print(unsigned long v, int base = DEC) { return num(v, base); }
-  size_t print(double v, int = 2) { char b[32]; snprintf(b, sizeof b, "%.2f", v); out += b; return strlen(b); }
-  template <typename T> size_t println(T v) { size_t n = print(v); out += "\n"; return n + 1; }
-  template <typename T> size_t println(T v, int base) { size_t n = print(v, base); out += "\n"; return n + 1; }
-  size_t println() { out += "\n"; return 1; }
+  size_t print(double v, int = 2) { char b[32]; snprintf(b, sizeof b, "%.2f", v); emit(b); return strlen(b); }
+  template <typename T> size_t println(T v) { size_t n = print(v); emit("\n"); return n + 1; }
+  template <typename T> size_t println(T v, int base) { size_t n = print(v, base); emit("\n"); return n + 1; }
+  size_t println() { emit("\n"); return 1; }
 private:
+  void emit(const char* s) { out += s; if (tee) fputs(s, tee); }
   size_t num(unsigned long v, int base) {
     char b[40]; int i = 39; b[i] = 0;
     if (v == 0) b[--i] = '0';
     while (v) { int d = v % base; b[--i] = (char)(d < 10 ? '0' + d : 'A' + d - 10); v /= base; }
-    out += b + i; return strlen(b + i);
+    emit(b + i); return strlen(b + i);
   }
   size_t snum(long v, int base) {
-    if (base == DEC && v < 0) { out += '-'; return 1 + num((unsigned long)(-v), base); }
+    if (base == DEC && v < 0) { emit("-"); return 1 + num((unsigned long)(-v), base); }
     return num((unsigned long)v, base);
   }
 };
